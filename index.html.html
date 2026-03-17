@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pusoy Royale — 3 / 5 / 5 Layout</title>
+<style>
+  :root{
+    --table-green:#0b6623;
+    --panel-bg: rgba(255,255,255,0.04);
+    --accent:#ffd166;
+    --muted:#cbd5e1;
+    --card-width:72px;
+    --card-height:96px;
+    --card-radius:10px;
+    --shadow: 0 8px 20px rgba(0,0,0,0.45);
+    --glass: rgba(255,255,255,0.04);
+    --glass-2: rgba(255,255,255,0.02);
+    --font-sans: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  html,body{ height:100%; margin:0; font-family:var(--font-sans); background:
+    radial-gradient(1200px 600px at 10% 10%, rgba(0,0,0,0.18), transparent 10%),
+    linear-gradient(180deg, #0f3b1f 0%, #083016 100%); color:#fff;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
+  .table { max-width:1100px; margin:28px auto; padding:20px; border-radius:16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6); position:relative; overflow:hidden; }
+
+  header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .brand{ display:flex; gap:12px; align-items:center; }
+  .logo{ width:52px; height:52px; border-radius:10px; background:linear-gradient(135deg,#ffd166,#ff8a00);
+    display:flex; align-items:center; justify-content:center; color:#2b2b2b; font-weight:700; font-size:18px; box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+  h1{ font-size:18px; margin:0; letter-spacing:0.6px; }
+  .controls{ display:flex; gap:8px; align-items:center; }
+  .btn{ background:var(--accent); color:#2b2b2b; border:none; padding:8px 12px; border-radius:10px; font-weight:700; cursor:pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.35); transition:transform .12s ease, box-shadow .12s ease; }
+  .btn.secondary{ background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.06); box-shadow:none; font-weight:600; }
+  .btn:active{ transform:translateY(2px); }
+
+  .arena{ display:grid; grid-template-columns: 1fr 720px 1fr; grid-template-rows: 120px 1fr; gap:18px; align-items:start; }
+
+  .player{ background: linear-gradient(180deg, var(--panel-bg), var(--glass)); border-radius:12px; padding:12px; display:flex; gap:12px; align-items:center; box-shadow: var(--shadow); min-height:84px; }
+  .avatar{ width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,#7bd389,#2bb673); display:flex; align-items:center; justify-content:center; font-weight:700; color:#083016; font-size:16px; }
+  .meta .name{ font-weight:700; color:var(--accent); }
+  .meta .score{ color:var(--muted); font-size:13px; }
+
+  .center{ grid-column:2; grid-row:2; display:flex; flex-direction:column; align-items:center; gap:12px; }
+
+  .board{ width:100%; min-height:420px; border-radius:14px; background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06)); display:flex; align-items:flex-start; justify-content:center; position:relative; padding:18px; box-shadow: 0 12px 30px rgba(0,0,0,0.5); flex-direction:column; gap:12px; }
+
+  .slot-row{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:8px 6px;
+    transition:transform .12s ease;
+  }
+
+  .row-label{
+    position:absolute;
+    left:18px;
+    top:8px;
+    font-weight:700;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  /* Visual emphasis: top = Good (3), middle = Better (5), bottom = Best (5) */
+  .row-front{ transform: translateY(-6px); }
+  .row-middle{ transform: translateY(0); }
+  .row-back{ transform: translateY(6px); }
+
+  .hand-slot{ width:calc(var(--card-width) + 8px); height:calc(var(--card-height) + 8px); border-radius:12px; background:var(--glass-2); display:flex; align-items:center; justify-content:center; transition:transform .12s ease, background .12s ease; border:1px dashed rgba(255,255,255,0.03); }
+  .hand-slot.highlight{ background: rgba(255,255,255,0.04); transform:translateY(-8px); }
+  .hand-slot.foul{ outline:3px solid rgba(255,80,80,0.18); box-shadow:0 6px 18px rgba(255,80,80,0.06) inset; }
+
+  .card{ width:var(--card-width); height:var(--card-height); border-radius:var(--card-radius); background:linear-gradient(180deg,#fff,#f8f8f8); color:#111; display:flex; flex-direction:column; justify-content:space-between; padding:8px; box-shadow: var(--shadow); user-select:none; touch-action:none; cursor:grab; transition:transform .18s cubic-bezier(.2,.9,.2,1), box-shadow .12s ease; position:relative; transform-origin:center; }
+  .card:active{ cursor:grabbing; transform:scale(.98); }
+  .card .corner{ font-weight:700; font-size:14px; }
+  .card .suit{ font-size:34px; text-align:center; line-height:1; margin-top:6px; }
+  .card.red .corner, .card.red .suit{ color:#c62828; }
+  .card.black .corner, .card.black .suit{ color:#111; }
+
+  .hand-row#playerHand{ padding:18px 6px; overflow:visible; display:flex; justify-content:center; gap:6px; }
+
+  .labels{
+    display:flex;
+    gap:12px;
+    width:100%;
+    justify-content:center;
+    margin-top:6px;
+  }
+  .label-pill{
+    background:rgba(0,0,0,0.14);
+    padding:6px 10px;
+    border-radius:999px;
+    color:var(--muted);
+    font-weight:700;
+    font-size:13px;
+  }
+  .label-good{ color:#bfe3b4; }
+  .label-better{ color:#ffd166; }
+  .label-best{ color:#ffd166; font-weight:900; }
+
+  .status{ margin-top:8px; color:var(--muted); font-size:13px; text-align:center; }
+  .progress{ width:320px; height:10px; background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden; }
+  .progress > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffd166,#ff8a00); transition:width .12s linear; }
+
+  @media (max-width:980px){
+    .table{ padding:12px; }
+    .arena{ grid-template-columns: 1fr; grid-template-rows: auto auto; }
+    .center{ grid-column:1; grid-row:2; }
+    .board{ min-height:520px; }
+  }
+</style>
+</head>
+<body>
+<div class="table" id="table">
+  <header>
+    <div class="brand">
+      <div class="logo">PR</div>
+      <div>
+        <h1>Pusoy Royale</h1>
+        <div style="font-size:12px;color:var(--muted)">Arrange: Front (3) — Middle (5) — Back (5)</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="dealBtn">Deal</button>
+      <button class="btn secondary" id="autoBtn">Auto Arrange</button>
+      <button class="btn secondary" id="validateBtn">Validate</button>
+      <button class="btn secondary" id="resetBtn">Reset</button>
+    </div>
+  </header>
+
+  <main class="arena">
+    <section class="player" id="player-top" style="grid-column:2; grid-row:1; justify-content:center;">
+      <div class="avatar">CPU</div>
+      <div class="meta">
+        <div class="name">CPU Opponent</div>
+        <div class="score">Score: <span id="score-top">0</span></div>
+      </div>
+    </section>
+
+    <section class="center">
+      <div class="board" id="board">
+        <div class="row-label" style="top:10px; left:18px;">Front = Good (3)</div>
+
+        <!-- FRONT row (3) - top -->
+        <div class="slot-row row-front" id="row-front" style="margin-top:6px;">
+          <!-- slots inserted here -->
+        </div>
+
+        <div class="row-label" style="top:150px; left:18px;">Middle = Better (5)</div>
+
+        <!-- MIDDLE row (5) - center -->
+        <div class="slot-row row-middle" id="row-middle" style="margin-top:6px;">
+          <!-- slots inserted here -->
+        </div>
+
+        <div class="row-label" style="top:300px; left:18px;">Back = Best (5)</div>
+
+        <!-- BACK row (5) - bottom -->
+        <div class="slot-row row-back" id="row-back" style="margin-top:6px;">
+          <!-- slots inserted here -->
+        </div>
+
+        <div class="labels" aria-hidden="true">
+          <div class="label-pill label-good">Good — Front (3)</div>
+          <div class="label-pill label-better">Better — Middle (5)</div>
+          <div class="label-pill label-best">Best — Back (5)</div>
+        </div>
+
+        <div style="width:100%; display:flex; justify-content:center; margin-top:10px;">
+          <div class="progress" id="progressBar" aria-hidden="true"><i></i></div>
+        </div>
+
+        <div class="status" id="statusMsg"></div>
+      </div>
+
+      <div class="hand-row" id="playerHand" aria-label="Your cards"></div>
+
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button class="btn" id="submitBtn">Submit Hand</button>
+        <button class="btn secondary" id="clearSlotsBtn">Clear Slots</button>
+      </div>
+    </section>
+
+    <section class="player" id="player-right" style="grid-column:3; grid-row:1; align-self:start; flex-direction:column; align-items:flex-end;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="meta" style="text-align:right">
+          <div class="name">Right Bot</div>
+          <div class="score">Score: <span id="score-right">0</span></div>
+        </div>
+        <div class="avatar">R</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* -------------------------
+   Constants and helpers
+   ------------------------- */
+const SUITS = ['♠','♥','♦','♣'];
+const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RANK_VALUE = r => {
+  if(r==='A') return 14;
+  if(r==='K') return 13;
+  if(r==='Q') return 12;
+  if(r==='J') return 11;
+  return parseInt(r,10);
+};
+
+function makeDeck(){
+  const deck = [];
+  let id = 0;
+  for(const r of RANKS){
+    for(const s of SUITS){
+      deck.push({ id: `c${id++}`, rank: r, suit: s, label: `${r}${s}` });
+    }
+  }
+  return deck;
+}
+
+/* -------------------------
+   DOM refs
+   ------------------------- */
+const playerHandEl = document.getElementById('playerHand');
+const rowFrontEl = document.getElementById('row-front');
+const rowMiddleEl = document.getElementById('row-middle');
+const rowBackEl = document.getElementById('row-back');
+const dealBtn = document.getElementById('dealBtn');
+const autoBtn = document.getElementById('autoBtn');
+const validateBtn = document.getElementById('validateBtn');
+const resetBtn = document.getElementById('resetBtn');
+const submitBtn = document.getElementById('submitBtn');
+const clearSlotsBtn = document.getElementById('clearSlotsBtn');
+const statusMsg = document.getElementById('statusMsg');
+const progressBar = document.getElementById('progressBar').firstElementChild;
+
+let deck = [];
+let playerCards = [];
+let slots = []; // {el, group, index, card}
+let dragging = null;
+let lastSelectedCardEl = null;
+
+/* -------------------------
+   Create slots in 3/5/5 order (Front top, Middle center, Back bottom)
+   ------------------------- */
+function createSlots(){
+  // clear
+  rowFrontEl.innerHTML = '';
+  rowMiddleEl.innerHTML = '';
+  rowBackEl.innerHTML = '';
+  slots = [];
+  // FRONT (3)
+  for(let i=0;i<3;i++){
+    const slot = document.createElement('div');
+    slot.className = 'hand-slot';
+    slot.dataset.group = 'Front';
+    slot.dataset.index = i;
+    slot.dataset.slotId = `Front-${i}`;
+    slot.addEventListener('pointerover', ()=>slot.classList.add('highlight'));
+    slot.addEventListener('pointerout', ()=>slot.classList.remove('highlight'));
+    slot.addEventListener('click', ()=>onSlotClick(slot));
+    rowFrontEl.appendChild(slot);
+    slots.push({ el: slot, group: 'Front', index: i, card: null });
+  }
+  // MIDDLE (5)
+  for(let i=0;i<5;i++){
+    const slot = document.createElement('div');
+    slot.className = 'hand-slot';
+    slot.dataset.group = 'Middle';
+    slot.dataset.index = i;
+    slot.dataset.slotId = `Middle-${i}`;
+    slot.addEventListener('pointerover', ()=>slot.classList.add('highlight'));
+    slot.addEventListener('pointerout', ()=>slot.classList.remove('highlight'));
+    slot.addEventListener('click', ()=>onSlotClick(slot));
+    rowMiddleEl.appendChild(slot);
+    slots.push({ el: slot, group: 'Middle', index: i, card: null });
+  }
+  // BACK (5)
+  for(let i=0;i<5;i++){
+    const slot = document.createElement('div');
+    slot.className = 'hand-slot';
+    slot.dataset.group = 'Back';
+    slot.dataset.index = i;
+    slot.dataset.slotId = `Back-${i}`;
+    slot.addEventListener('pointerover', ()=>slot.classList.add('highlight'));
+    slot.addEventListener('pointerout', ()=>slot.classList.remove('highlight'));
+    slot.addEventListener('click', ()=>onSlotClick(slot));
+    rowBackEl.appendChild(slot);
+    slots.push({ el: slot, group: 'Back', index: i, card: null });
+  }
+}
+
+/* -------------------------
+   Render card element
+   ------------------------- */
+function renderCard(cardObj){
+  const el = document.createElement('div');
+  el.className = 'card ' + (cardObj.suit === '♥' || cardObj.suit === '♦' ? 'red' : 'black');
+  el.draggable = false;
+  el.dataset.cardId = cardObj.id;
+  el.innerHTML = `<div class="corner">${cardObj.rank}</div><div class="suit">${cardObj.suit}</div><div style="text-align:right;font-size:12px;color:rgba(0,0,0,0.45)">${cardObj.rank}</div>`;
+  el.addEventListener('pointerdown', onCardPointerDown);
+  el.addEventListener('touchstart', (e)=>e.preventDefault(), {passive:false});
+  return el;
+}
+
+/* -------------------------
+   Shuffle & deal
+   ------------------------- */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+}
+
+function deal(){
+  deck = makeDeck();
+  shuffle(deck);
+  playerCards = deck.slice(0,13).map(c=>({...c}));
+  // clear slots
+  slots.forEach(s=> s.card = null);
+  renderPlayerHand();
+  renderSlots();
+  statusMsg.textContent = 'Dealt — arrange Front (3) / Middle (5) / Back (5)';
+  // animate dealt
+  document.querySelectorAll('.card').forEach((c,idx)=>{
+    c.classList.remove('dealt');
+    setTimeout(()=>c.classList.add('dealt'), idx*18);
+  });
+}
+
+/* -------------------------
+   Render player's hand & slots
+   ------------------------- */
+function renderPlayerHand(){
+  playerHandEl.innerHTML = '';
+  if(!Array.isArray(playerCards)) playerCards = [];
+  playerCards.forEach((c,idx)=>{
+    const el = renderCard(c);
+    el.style.transform = `translateY(${Math.sin(idx/2)*6}px) rotate(${(idx-6)*2}deg)`;
+    el.style.margin = '0 -14px';
+    el.style.zIndex = 100 + idx;
+    playerHandEl.appendChild(el);
+  });
+}
+
+function renderSlots(){
+  slots.forEach(s=>{
+    s.el.innerHTML = '';
+    s.el.classList.remove('foul');
+    if(s.card){
+      const cEl = renderCard(s.card);
+      cEl.style.margin = '0';
+      cEl.style.transform = 'none';
+      cEl.style.position = 'static';
+      cEl.style.zIndex = '';
+      cEl.addEventListener('click', ()=> {
+        playerCards.push(s.card);
+        s.card = null;
+        renderPlayerHand();
+        renderSlots();
+      });
+      s.el.appendChild(cEl);
+    }
+  });
+}
+
+/* -------------------------
+   Drag / pointer handlers (click-to-move fallback)
+   ------------------------- */
+function onCardPointerDown(e){
+  const el = e.currentTarget;
+  if(lastSelectedCardEl && lastSelectedCardEl !== el) lastSelectedCardEl.classList.remove('selected');
+  lastSelectedCardEl = el;
+  el.classList.add('selected');
+  dragging = { cardEl: el, cardId: el.dataset.cardId, from: 'hand' };
+  el.setPointerCapture(e.pointerId);
+  el.addEventListener('pointermove', onCardPointerMove);
+  el.addEventListener('pointerup', onCardPointerUp);
+  el.addEventListener('pointercancel', onCardPointerUp);
+}
+
+function onCardPointerMove(e){
+  if(!dragging) return;
+  const el = dragging.cardEl;
+  el.style.position = 'absolute';
+  el.style.left = (e.clientX - 36) + 'px';
+  el.style.top = (e.clientY - 48) + 'px';
+  el.style.zIndex = 9999;
+  el.style.transform = 'scale(1.06)';
+  // highlight nearest slot
+  let nearest = null, minD = Infinity;
+  slots.forEach(s=>{
+    const r = s.el.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width/2);
+    const dy = e.clientY - (r.top + r.height/2);
+    const d = Math.hypot(dx,dy);
+    if(d < minD){ minD = d; nearest = s; }
+  });
+  slots.forEach(s=> s.el.classList.toggle('highlight', s===nearest && minD < 120));
+}
+
+function onCardPointerUp(e){
+  if(!dragging) return;
+  const el = dragging.cardEl;
+  const target = slots.find(s=> s.el.classList.contains('highlight'));
+  if(target){
+    placeCardInSlot(dragging.cardId, target);
+  } else {
+    el.style.position = '';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.zIndex = '';
+    el.style.transform = '';
+  }
+  el.classList.remove('selected');
+  el.removeEventListener('pointermove', onCardPointerMove);
+  el.removeEventListener('pointerup', onCardPointerUp);
+  el.removeEventListener('pointercancel', onCardPointerUp);
+  slots.forEach(s=> s.el.classList.remove('highlight'));
+  dragging = null;
+}
+
+/* -------------------------
+   Place card into slot
+   ------------------------- */
+function placeCardInSlot(cardId, slotObj){
+  const idx = playerCards.findIndex(c=> c.id === cardId);
+  if(idx === -1) return;
+  const card = playerCards.splice(idx,1)[0];
+  if(slotObj.card){
+    playerCards.push(slotObj.card);
+  }
+  slotObj.card = card;
+  renderPlayerHand();
+  renderSlots();
+}
+
+/* -------------------------
+   Slot click fallback (mobile)
+   ------------------------- */
+function onSlotClick(slotEl){
+  if(!lastSelectedCardEl) return;
+  const cardId = lastSelectedCardEl.dataset.cardId;
+  const slotObj = slots.find(s=> s.el === slotEl);
+  if(slotObj) placeCardInSlot(cardId, slotObj);
+  lastSelectedCardEl.classList.remove('selected');
+  lastSelectedCardEl = null;
+}
+
+/* -------------------------
+   Clear slots
+   ------------------------- */
+clearSlotsBtn.addEventListener('click', ()=>{
+  slots.forEach(s=> { if(s.card) playerCards.push(s.card); s.card = null; });
+  renderPlayerHand();
+  renderSlots();
+  statusMsg.textContent = 'Slots cleared';
+});
+
+/* -------------------------
+   Evaluate 5-card poker hand
+   ------------------------- */
+function evaluate5(cards){
+  const vals = cards.map(c=>RANK_VALUE(c.rank)).sort((a,b)=>b-a);
+  const suits = cards.map(c=>c.suit);
+  const counts = {};
+  vals.forEach(v=> counts[v] = (counts[v]||0)+1);
+  const groups = Object.entries(counts).map(([v,c])=>({v:parseInt(v,10),c})).sort((a,b)=>{
+    if(b.c!==a.c) return b.c - a.c;
+    return b.v - a.v;
+  });
+  const isFlush = suits.every(s=> s===suits[0]);
+  const uniqueVals = [...new Set(vals)].sort((a,b)=>a-b);
+  let isStraight = false;
+  if(uniqueVals.length===5){
+    const max = Math.max(...uniqueVals);
+    const min = Math.min(...uniqueVals);
+    if(max - min === 4) isStraight = true;
+    if(JSON.stringify(uniqueVals) === JSON.stringify([2,3,4,5,14])) isStraight = true;
+  }
+  if(isStraight && isFlush) return { rank:8, tiebreak: [Math.max(...vals)] };
+  if(groups[0].c === 4) return { rank:7, tiebreak: [groups[0].v, groups[1].v] };
+  if(groups[0].c === 3 && groups[1].c === 2) return { rank:6, tiebreak: [groups[0].v, groups[1].v] };
+  if(isFlush) return { rank:5, tiebreak: vals };
+  if(isStraight){
+    const high = (JSON.stringify(uniqueVals) === JSON.stringify([2,3,4,5,14])) ? 5 : Math.max(...vals);
+    return { rank:4, tiebreak: [high] };
+  }
+  if(groups[0].c === 3) return { rank:3, tiebreak: [groups[0].v, ...groups.slice(1).map(g=>g.v)] };
+  if(groups[0].c === 2 && groups[1].c === 2) return { rank:2, tiebreak: [groups[0].v, groups[1].v, groups[2].v] };
+  if(groups[0].c === 2) return { rank:1, tiebreak: [groups[0].v, ...groups.slice(1).map(g=>g.v)] };
+  return { rank:0, tiebreak: vals };
+}
+
+/* -------------------------
+   Evaluate 3-card Pusoy front
+   ------------------------- */
+function evaluate3(cards){
+  const vals = cards.map(c=>RANK_VALUE(c.rank)).sort((a,b)=>b-a);
+  const counts = {};
+  vals.forEach(v=> counts[v] = (counts[v]||0)+1);
+  const groups = Object.entries(counts).map(([v,c])=>({v:parseInt(v,10),c})).sort((a,b)=>{
+    if(b.c!==a.c) return b.c - a.c;
+    return b.v - a.v;
+  });
+  if(groups[0].c === 3) return { rank:2, tiebreak: [groups[0].v] };
+  if(groups[0].c === 2) {
+    const kicker = groups[1].v;
+    return { rank:1, tiebreak: [groups[0].v, kicker] };
+  }
+  return { rank:0, tiebreak: vals };
+}
+
+/* -------------------------
+   Compare helpers
+   ------------------------- */
+function compareEval(a,b){
+  if(a.rank !== b.rank) return a.rank > b.rank ? 1 : -1;
+  for(let i=0;i<Math.max(a.tiebreak.length,b.tiebreak.length);i++){
+    const av = a.tiebreak[i]||0;
+    const bv = b.tiebreak[i]||0;
+    if(av !== bv) return av > bv ? 1 : -1;
+  }
+  return 0;
+}
+
+/* -------------------------
+   Validate current slots (Back >= Middle >= Front)
+   ------------------------- */
+function validateArrangement(){
+  const back = slots.filter(s=> s.group==='Back').map(s=> s.card).filter(Boolean);
+  const middle = slots.filter(s=> s.group==='Middle').map(s=> s.card).filter(Boolean);
+  const front = slots.filter(s=> s.group==='Front').map(s=> s.card).filter(Boolean);
+  if(back.length !==5 || middle.length !==5 || front.length !==3){
+    statusMsg.textContent = 'All slots must be filled: Front 3, Middle 5, Back 5.';
+    return { valid:false, reason:'incomplete' };
+  }
+  const evalBack = evaluate5(back);
+  const evalMiddle = evaluate5(middle);
+  const evalFront = evaluate3(front);
+  const b_vs_m = compareEval(evalBack, evalMiddle);
+  const m_vs_f = compareEval(evalMiddle, evalFront);
+  slots.forEach(s=> s.el.classList.remove('foul'));
+  let valid = true;
+  if(b_vs_m < 0){
+    slots.filter(s=> s.group==='Back' || s.group==='Middle').forEach(s=> s.el.classList.add('foul'));
+    statusMsg.textContent = 'Foul: Back must be equal or stronger than Middle.';
+    valid = false;
+  } else if(m_vs_f < 0){
+    slots.filter(s=> s.group==='Middle' || s.group==='Front').forEach(s=> s.el.classList.add('foul'));
+    statusMsg.textContent = 'Foul: Middle must be equal or stronger than Front.';
+    valid = false;
+  } else {
+    statusMsg.textContent = 'Valid arrangement.';
+  }
+  return { valid, evalBack, evalMiddle, evalFront };
+}
+
+/* -------------------------
+   Submit button
+   ------------------------- */
+submitBtn.addEventListener('click', ()=>{
+  const res = validateArrangement();
+  if(!res.valid) return;
+  statusMsg.textContent = `Submitted. Back: ${handLabel(res.evalBack)}, Middle: ${handLabel(res.evalMiddle)}, Front: ${handLabel(res.evalFront)}`;
+});
+
+/* -------------------------
+   Helper to label hand category
+   ------------------------- */
+function handLabel(ev){
+  const map5 = ['High Card','One Pair','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush'];
+  const map3 = ['High Card','Pair','Three of a Kind'];
+  if(ev.rank >=0 && ev.rank <=8) return map5[ev.rank] || ev.rank;
+  return map3[ev.rank] || ev.rank;
+}
+
+/* -------------------------
+   Auto arrange (greedy fallback)
+   ------------------------- */
+autoBtn.addEventListener('click', ()=>{
+  // simple greedy: strongest cards to back, next to middle, top 3 to front
+  const all = [];
+  slots.forEach(s=> { if(s.card) all.push(s.card); s.card = null; });
+  playerCards.forEach(c=> all.push(c));
+  if(all.length !== 13){
+    statusMsg.textContent = 'You must have 13 cards total (hand + slots).';
+    return;
+  }
+  all.sort((a,b)=> RANK_VALUE(b.rank) - RANK_VALUE(a.rank));
+  // assign: back (best) 5, middle 5, front 3 (good)
+  const backCards = all.slice(0,5);
+  const middleCards = all.slice(5,10);
+  const frontCards = all.slice(10,13);
+  // place into slots
+  slots.filter(s=> s.group==='Back').forEach((s,i)=> s.card = backCards[i]);
+  slots.filter(s=> s.group==='Middle').forEach((s,i)=> s.card = middleCards[i]);
+  slots.filter(s=> s.group==='Front').forEach((s,i)=> s.card = frontCards[i]);
+  // remaining none
+  playerCards = [];
+  renderPlayerHand();
+  renderSlots();
+  statusMsg.textContent = 'Auto arranged (greedy). Validate to check fouls.';
+});
+
+/* -------------------------
+   Validate button
+   ------------------------- */
+validateBtn.addEventListener('click', ()=> validateArrangement());
+
+/* -------------------------
+   Reset
+   ------------------------- */
+resetBtn.addEventListener('click', ()=>{
+  deck = [];
+  playerCards = [];
+  slots.forEach(s=> s.card = null);
+  renderPlayerHand();
+  renderSlots();
+  statusMsg.textContent = 'Reset';
+});
+
+/* -------------------------
+   Initialization on DOM ready
+   ------------------------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  createSlots();
+  deal();
+  renderSlots();
+});
+
+/* -------------------------
+   Expose Deal button
+   ------------------------- */
+dealBtn.addEventListener('click', ()=> {
+  deal();
+  document.getElementById('table').classList.add('dealing');
+  setTimeout(()=> document.getElementById('table').classList.remove('dealing'), 600);
+});
+
+</script>
+</body>
+</html>
