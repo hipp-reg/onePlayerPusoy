@@ -295,6 +295,38 @@ html,body{width:100%;height:100%;overflow:hidden;
 .val-bar.err{color:var(--lose);}
 .val-bar.warn{color:#f59e0b;}
 
+/* ─── Row utility buttons ─── */
+.btn-row-return{
+  background:none;border:1px solid rgba(255,255,255,.1);color:var(--text-dim);
+  font-size:10px;padding:1px 6px;border-radius:12px;cursor:pointer;
+  transition:all .15s;flex-shrink:0;font-family:inherit;line-height:1.4;
+}
+.btn-row-return:hover,.btn-row-return:active{
+  color:var(--gold);border-color:var(--gold);background:rgba(201,150,42,.1);
+}
+/* Swap button strip between Best and Better */
+.swap-row-wrap{
+  display:flex;align-items:center;gap:8px;
+  flex-shrink:0;padding:0 4px;
+}
+.swap-divline{flex:1;height:1px;background:rgba(255,255,255,.06);}
+.btn-swap{
+  background:rgba(201,150,42,.1);border:1px solid rgba(201,150,42,.3);
+  color:var(--gold);padding:4px 14px;border-radius:20px;
+  font-size:10px;letter-spacing:1px;cursor:pointer;font-family:inherit;
+  transition:all .18s;display:flex;align-items:center;gap:5px;flex-shrink:0;
+  text-transform:uppercase;font-weight:bold;white-space:nowrap;
+}
+.btn-swap:active{background:rgba(201,150,42,.25);transform:scale(.96);}
+.swap-icon{font-size:13px;line-height:1;transition:transform .3s;}
+.btn-swap:active .swap-icon{transform:rotate(180deg);}
+/* Hand section drop-target highlight when card selected from row */
+.hand-section.drop-active{
+  outline:2px dashed var(--gold);outline-offset:3px;border-radius:8px;
+  background:rgba(201,150,42,.04);
+}
+.hand-lbl.has-target{color:var(--gold-lt);}
+
 /* ─── Controls ─── */
 .controls-bar{
   display:flex;gap:5px;flex-shrink:0;
@@ -439,7 +471,7 @@ html,body{width:100%;height:100%;overflow:hidden;
 <div id="start-screen">
   <div class="start-float-wrap" id="float-wrap"></div>
   <div class="logo-wrap">
-    <div class="logo-title">PUSOY-Neil</div>
+    <div class="logo-title">PUSOY</div>
     <div class="logo-sub">Filipino 13-Card Poker · Solo Training</div>
   </div>
   <div class="start-suit-row">
@@ -466,7 +498,7 @@ html,body{width:100%;height:100%;overflow:hidden;
 <div id="game-screen" class="hidden">
 
   <div class="game-header">
-    <div class="game-title">PUSOY-Neil</div>
+    <div class="game-title">PUSOY</div>
     <div class="header-stats">
       <span>W:<strong id="hw">0</strong> L:<strong id="hl">0</strong></span>
     </div>
@@ -496,6 +528,7 @@ html,body{width:100%;height:100%;overflow:hidden;
     <div>
       <div class="row-header">
         <span class="row-lbl">Best</span>
+        <button class="btn-row-return" onclick="rowToHand('best')" title="Return all to hand">↩ hand</button>
         <div class="row-divline"></div>
         <span class="row-handname" id="hname-best"></span>
         <span class="row-cnt" id="cnt-best">0/5</span>
@@ -504,9 +537,18 @@ html,body{width:100%;height:100%;overflow:hidden;
         <span class="row-hint">Strongest 5 cards</span>
       </div>
     </div>
+    <!-- Swap Best ↕ Better -->
+    <div class="swap-row-wrap">
+      <div class="swap-divline"></div>
+      <button class="btn-swap" id="btn-swap" onclick="swapBestBetter()">
+        <span class="swap-icon">⇅</span> Swap Best / Better
+      </button>
+      <div class="swap-divline"></div>
+    </div>
     <div>
       <div class="row-header">
         <span class="row-lbl">Better</span>
+        <button class="btn-row-return" onclick="rowToHand('better')" title="Return all to hand">↩ hand</button>
         <div class="row-divline"></div>
         <span class="row-handname" id="hname-better"></span>
         <span class="row-cnt" id="cnt-better">0/5</span>
@@ -518,6 +560,7 @@ html,body{width:100%;height:100%;overflow:hidden;
     <div>
       <div class="row-header">
         <span class="row-lbl">Good</span>
+        <button class="btn-row-return" onclick="rowToHand('good')" title="Return all to hand">↩ hand</button>
         <div class="row-divline"></div>
         <span class="row-handname" id="hname-good"></span>
         <span class="row-cnt" id="cnt-good">0/3</span>
@@ -537,8 +580,8 @@ html,body{width:100%;height:100%;overflow:hidden;
     <button class="btn btn-submit" id="btn-submit" disabled>SUBMIT</button>
   </div>
 
-  <div class="hand-section">
-    <div class="hand-lbl">YOUR HAND — tap a card, then tap a row</div>
+  <div class="hand-section" id="hand-section">
+    <div class="hand-lbl" id="hand-lbl">YOUR HAND — tap a card, then tap a row</div>
     <div class="hand-scroll">
       <div class="hand-cards" id="hand-cards"></div>
     </div>
@@ -558,7 +601,8 @@ html,body{width:100%;height:100%;overflow:hidden;
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
-const RANKS  = ['3','4','5','6','7','8','9','T','J','Q','K','A','2'];
+// Pusoy Way: 2=lowest(0), A=highest(12). Standard poker ranking — NOT Pusoy Dos.
+const RANKS  = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
 const SUITS  = ['C','D','H','S'];
 const RV = Object.fromEntries(RANKS.map((r,i)=>[r,i])); // rank → 0..12
 const SV = {C:0,D:1,H:2,S:3};
@@ -603,6 +647,11 @@ function shuffle(a){
 function cs(c){return RV[c.r]*4+SV[c.s];}
 
 // Evaluate a 5-card hand → [category 0-9, ...tiebreakers]
+// Pusoy Way RANKS: 2=0,3=1,4=2,5=3,6=4,7=5,8=6,9=7,T=8,J=9,Q=10,K=11,A=12
+// Straights:
+//   Normal: uR sorted desc, uR[0]-uR[4]===4 → covers 2-6, 3-7, ... 9-K, T-A
+//   Wheel:  A-2-3-4-5 → A=12,2=0,3=1,4=2,5=3 → uR desc=[12,3,2,1,0]; LOWEST straight
+// Royal Flush: T-J-Q-K-A same suit (T=8,J=9,Q=10,K=11,A=12 → uR[0]=12,uR[4]=8)
 function ev5(cards){
   if(!cards||cards.length!==5)return[-1];
   const sorted=[...cards].sort((a,b)=>cs(b)-cs(a));
@@ -611,13 +660,21 @@ function ev5(cards){
   const rc={};ranks.forEach(r=>rc[r]=(rc[r]||0)+1);
   const isF=suits.every(s=>s===suits[0]);
   const uR=[...new Set(ranks)].sort((a,b)=>b-a);
-  const isS=uR.length===5&&(uR[0]-uR[4]===4);
+
+  // Wheel: A-2-3-4-5 → uR desc = [12, 3, 2, 1, 0]
+  // (A=12 is high, then 5=3,4=2,3=1,2=0 in new Pusoy Way ranking)
+  const isWheel=(uR.length===5&&uR[0]===12&&uR[1]===3&&uR[2]===2&&uR[3]===1&&uR[4]===0);
+  // Normal straight: 5 unique ranks spanning exactly 4 (2-6 through T-A)
+  const isNormS=(uR.length===5&&(uR[0]-uR[4]===4));
+  const isS=isWheel||isNormS;
+
   const grps=Object.entries(rc).sort((a,b)=>b[1]-a[1]||+b[0]-+a[0]);
   const cnts=grps.map(g=>g[1]);
   let cat;
   if(isS&&isF){
-    // Royal Flush = J-Q-K-A-2 same suit (uR[0]=12 which is '2')
-    cat=uR[0]===12?9:8;
+    // Royal Flush = T-J-Q-K-A same suit: uR=[12,11,10,9,8] → uR[0]===12 && uR[4]===8
+    const isRoyal=isNormS&&uR[0]===12&&uR[4]===8;
+    cat=isRoyal?9:8;
   }else if(cnts[0]===4)cat=7;
   else if(cnts[0]===3&&cnts[1]===2)cat=6;
   else if(isF)cat=5;
@@ -626,7 +683,13 @@ function ev5(cards){
   else if(cnts[0]===2&&cnts[1]===2)cat=2;
   else if(cnts[0]===2)cat=1;
   else cat=0;
-  // Tiebreakers: sort by group desc, then by card score within group
+
+  // Wheel tiebreaker: A-2-3-4-5 is the LOWEST straight.
+  // Normal straights start tiebreakers with cs(6)=4*4+suit≥16.
+  // Using -1 ensures wheel loses to all normal straights within category 4 or 8.
+  if(isWheel){return[cat,-1,-1,-1,-1,-1];}
+
+  // Tiebreakers: sort by group size desc, then by card score desc within group
   const tie=[];
   for(const [rStr]of grps){
     sorted.filter(c=>RV[c.r]===+rStr).forEach(c=>tie.push(cs(c)));
@@ -707,17 +770,53 @@ function combos(arr,k){
 // BOT AI
 // ═══════════════════════════════════════════════════════
 // Difficulty controls how many Best-hand candidates we try
-const DIFF_PRUNE = {medium:80, hard:200, expert:1287};
+const DIFF_PRUNE = {medium:120, hard:300, expert:1287};
 
+// Score an arrangement. Returns a number — higher is better.
+//
+// Design goals this scoring must satisfy:
+//  (A) A higher HAND CATEGORY always beats a lower one (category dominates).
+//  (B) When Best categories are EQUAL, prefer arrangements with a STRONGER
+//      Better row — even if it means a marginally weaker Best.
+//      e.g. FH(4-4-4-7-7)+OnePair(J-J) > FH(4-4-4-J-J)+OnePair(7-7)
+//       because the J pair does more work in Better than as an FH kicker.
+//  (C) Within same categories everywhere, prefer higher cards in upper rows
+//      (highest available cards → Best, medium → Better, lowest → Good).
+//
+// How the weights achieve this:
+//   Category step (Best) = 10000, (Better) = 4000, (Good) = 300
+//   Max tiebreaker mTie ≈ 51*(20+10+5+2) ≈ 1887  < one Better cat step (4000) ✓
+//   Max tiebreaker bTie ≈ 51*(0.3+0.15+0.06+0.03) ≈ 28   << mTie diff range ✓
+//   → categories always dominate, but within same categories card values matter.
 function scoreBotArr(be,me,ge,diff){
-  // Primary: maximize total hand strength weighted by position
-  // Best weighted highest, then Better, then Good
-  const bw=be[0]*200, mw=me[0]*80, gw=ge[0]*20;
-  // Secondary: within same total, prefer balanced strength
-  // Penalize huge gap between Best and Better (unbalanced)
-  const gap=Math.abs(be[0]-me[0]);
-  const balance = diff==='expert' ? -gap*5 : 0;
-  return bw+mw+gw+balance;
+  // ── Primary: hand category × position weight ──
+  const bCat = be[0] * 10000;
+  const mCat = me[0] * 4000;
+  const gCat = ge[0] * 300;
+
+  // ── Secondary: tiebreaker card values (cs() scores) ──
+  // ev5/ev3 returns [category, ...card_scores_by_group_desc]
+  // e.g. Full House: [6, cs(trip1), cs(trip2), cs(trip3), cs(pair1), cs(pair2)]
+  //
+  // Best tiebreakers → LOW weight.
+  //   We willingly sacrifice a slightly weaker Best (e.g. smaller FH pair)
+  //   to free up strong cards for the Better row.
+  const bTie = (be[1]??0)*0.30 + (be[2]??0)*0.15 + (be[3]??0)*0.06 + (be[4]??0)*0.03;
+
+  // Better tiebreakers → HIGH weight (most wins are decided here).
+  //   Strong pairs/high-cards here beat more opponents.
+  const mTie = (me[1]??0)*20 + (me[2]??0)*10 + (me[3]??0)*5 + (me[4]??0)*2;
+
+  // Good tiebreakers → MEDIUM weight.
+  //   Prefer the highest available cards end up here when no stronger hand fits.
+  const gTie = (ge[1]??0)*8 + (ge[2]??0)*4 + (ge[3]??0)*2;
+
+  // Expert: slight penalty for a huge category gap between Best and Better
+  // (encourages balanced strength across rows)
+  const gap = Math.abs(be[0] - me[0]);
+  const balance = diff==='expert' ? -gap * 12 : 0;
+
+  return bCat + mCat + gCat + bTie + mTie + gTie + balance;
 }
 
 function botArrange(cards, difficulty='hard'){
@@ -842,17 +941,33 @@ function updateHandNames(){
 function updateValidation(){
   const bar=document.getElementById('val-bar');
   const sub=document.getElementById('btn-submit');
+  const hs=document.getElementById('hand-section');
+  const hl=document.getElementById('hand-lbl');
   const {best,better,good}=G.rows;
   const total=best.length+better.length+good.length;
 
-  // Reset row styles
+  // Reset row styles and hand-section highlight
   ['best','better','good'].forEach(rn=>{
     document.getElementById('row-'+rn).classList.remove('row-valid','row-invalid');
   });
+  hs.classList.remove('drop-active');
+  hl.classList.remove('has-target');
+  hl.textContent='YOUR HAND — tap a card, then tap a row';
 
   if(G.selected){
+    const fromRow=G.selected.src!=='hand';
     bar.className='val-bar warn';
-    bar.textContent=`Tap a row to place ${RD[G.selected.card.r]||G.selected.card.r}${SS[G.selected.card.s]}`;
+    const rk=RD[G.selected.card.r]||G.selected.card.r;
+    const st=SS[G.selected.card.s];
+    if(fromRow){
+      // Highlight hand area so user knows they can tap it to return the card
+      hs.classList.add('drop-active');
+      hl.classList.add('has-target');
+      hl.textContent='Tap here ↓ to return card to hand — or tap another row';
+      bar.textContent=`${rk}${st} selected — tap a row to move, or tap hand area below to return`;
+    }else{
+      bar.textContent=`${rk}${st} selected — tap a row to place it`;
+    }
     sub.disabled=true;return;
   }
   if(total===0){
@@ -871,7 +986,7 @@ function updateValidation(){
   const bestGTbetter=cmpEv(be,me)>=0;
   const betterGTgood=mid5VsGood3(me,ge);
   if(!bestGTbetter){
-    bar.className='val-bar err';bar.textContent='⚠ FOUL: Best must be ≥ Better';
+    bar.className='val-bar err';bar.textContent='⚠ FOUL: Best must be ≥ Better — use ⇅ Swap or rearrange';
     document.getElementById('row-best').classList.add('row-invalid');
     document.getElementById('row-better').classList.add('row-invalid');
     sub.disabled=true;return;
@@ -957,6 +1072,19 @@ function addCard(card,dest){
   });
 });
 
+// Hand section click: when a row card is selected, tap the hand area to return it
+document.getElementById('hand-section').addEventListener('click',e=>{
+  if(e.target.closest('.card'))return; // card click handled by its own listener
+  if(dragState)return;
+  if(G.selected&&G.selected.src!=='hand'){
+    removeCard(G.selected.card,G.selected.src);
+    addCard(G.selected.card,'hand');
+    G.handCards.sort((a,b)=>cs(b)-cs(a));
+    G.selected=null;
+    refreshUI();
+  }
+});
+
 // ═══════════════════════════════════════════════════════
 // DRAG AND DROP (Touch + Mouse)
 // ═══════════════════════════════════════════════════════
@@ -999,8 +1127,10 @@ function onMUp(e){finishDrag(e.clientX,e.clientY);document.removeEventListener('
 
 function highlightDrop(x,y){
   ['best','better','good'].forEach(rn=>{document.getElementById('row-'+rn).classList.remove('dragover');});
+  document.getElementById('hand-section').classList.remove('drop-active');
   const t=getDropTarget(x,y);
-  if(t)document.getElementById('row-'+t)?.classList.add('dragover');
+  if(t&&t!=='hand')document.getElementById('row-'+t)?.classList.add('dragover');
+  if(t==='hand')document.getElementById('hand-section').classList.add('drop-active');
 }
 
 function getDropTarget(x,y){
@@ -1009,7 +1139,8 @@ function getDropTarget(x,y){
     const r=el.getBoundingClientRect();
     if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return rn;
   }
-  const hs=document.querySelector('.hand-section');
+  // Hand section: dragging a card back to the hand area
+  const hs=document.getElementById('hand-section');
   if(hs){const r=hs.getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return'hand';}
   return null;
 }
@@ -1019,6 +1150,7 @@ function finishDrag(x,y){
   const {card,src,moved}=dragState;
   ghost.classList.add('hidden');
   ['best','better','good'].forEach(rn=>{document.getElementById('row-'+rn).classList.remove('dragover');});
+  document.getElementById('hand-section').classList.remove('drop-active');
   const srcEl=document.querySelector(`[data-id="${card.id}"]`);
   if(srcEl)srcEl.style.opacity='';
   if(!moved){dragState=null;return;} // treat as tap
@@ -1026,7 +1158,9 @@ function finishDrag(x,y){
   if(target&&target!==src){
     G.selected=null;
     if(target==='hand'){
-      removeCard(card,src);addCard(card,'hand');
+      removeCard(card,src);
+      addCard(card,'hand');
+      G.handCards.sort((a,b)=>cs(b)-cs(a));
     }else{
       const mc=ROW_MAX[target],cur=G.rows[target].length;
       if(cur<mc){
@@ -1049,6 +1183,33 @@ document.getElementById('hand-cards').addEventListener('mousedown',e=>{
   const card=G.handCards.find(c=>c.id===id);
   if(card)initDrag(e.clientX,e.clientY,card,'hand',false);
 });
+
+// ═══════════════════════════════════════════════════════
+// SWAP & RETURN HELPERS
+// ═══════════════════════════════════════════════════════
+
+// Swap the entire Best and Better rows
+function swapBestBetter(){
+  const tmp=[...G.rows.best];
+  G.rows.best=[...G.rows.better];
+  G.rows.better=tmp;
+  G.selected=null;
+  // Brief visual flash on the swap button
+  const btn=document.getElementById('btn-swap');
+  btn.style.background='rgba(201,150,42,.35)';
+  setTimeout(()=>{btn.style.background='';},300);
+  refreshUI();
+}
+
+// Return all cards from a row back to the hand
+function rowToHand(rowName){
+  if(!G.rows[rowName].length)return;
+  G.handCards=[...G.handCards,...G.rows[rowName]];
+  G.rows[rowName]=[];
+  G.selected=null;
+  G.handCards.sort((a,b)=>cs(b)-cs(a));
+  refreshUI();
+}
 
 // ═══════════════════════════════════════════════════════
 // GAME FLOW
